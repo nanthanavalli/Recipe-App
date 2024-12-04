@@ -61,8 +61,8 @@ export default function RecipeDetail({meal}) {
     const [favorites, setFavorites] = useState([]);
 
     useEffect(() => {
-        const handleStart = () => setIsLoading(true); // When navigation starts
-        const handleComplete = () => setIsLoading(false); // When navigation ends
+        const handleStart = () => setIsLoading(true);
+        const handleComplete = () => setIsLoading(false);
 
         router.events.on('routeChangeStart', handleStart);
         router.events.on('routeChangeComplete', handleComplete);
@@ -144,7 +144,7 @@ export default function RecipeDetail({meal}) {
                 <Link href="/">
                     <div
                         className="flex items-center text-blue-500 hover:text-blue-700 font-semibold mb-6 cursor-pointer">
-                        <FiArrowLeft className="mr-2"/> {/* Left arrow icon */}
+                        <FiArrowLeft className="mr-2"/>
                         <span>Back to All Meals</span>
                     </div>
                 </Link>
@@ -161,15 +161,11 @@ export default function RecipeDetail({meal}) {
                     <div>
                         <div className="flex items-center mb-4 gap-3">
                             <h1 className="text-3xl font-bold">{meal.strMeal}</h1>
-                            {/*<div className="flex items-center gap-2 ">*/}
-                            {/*    <h2 className="font-bold">Add to favorites</h2>*/}
-                            {/*    */}
                             {favorites.some(favorite => favorite.mealId === meal.idMeal) ?
                                 <FaStar size={24} onClick={() => {
                                     handleRemoveFavorite(meal.idMeal);
                                 }}/> :
                                 <FaRegStar size={24} onClick={handleAddFavorite}/>}
-                            {/*</div>*/}
                         </div>
                         <p className="text-gray-400 mb-4">
                             <span className="font-semibold">Category:</span> {meal.strCategory}

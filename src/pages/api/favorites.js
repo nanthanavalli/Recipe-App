@@ -2,11 +2,9 @@ import connectToDatabase from '../../lib/mongodb';
 import FavoriteRecipe from '../../models/FavoriteRecipe';
 
 export default async function handler(req, res) {
-  // Connect to MongoDB
   await connectToDatabase();
 
   if (req.method === 'GET') {
-    // Retrieve all favorite meals from MongoDB
     try {
       const favorites = await FavoriteRecipe.find({});
       return res.status(200).json(favorites);
@@ -20,13 +18,11 @@ export default async function handler(req, res) {
     const { mealId, mealName, imageUrl } = req.body;
 
     try {
-      // Check if the recipe already exists in favorites
       const existingMeal = await FavoriteRecipe.findOne({ mealId });
       if (existingMeal) {
         return res.status(400).json({ message: 'Meal already in favorites' });
       }
 
-      // Add the new favorite recipe
       const newFavorite = new FavoriteRecipe({
         mealId,
         mealName,
@@ -43,10 +39,11 @@ export default async function handler(req, res) {
 
   if (req.method === 'DELETE') {
     const { mealId } = req.body;
-
     try {
-      // Remove the meal from favorites
-      await FavoriteRecipe.deleteOne({ mealId });
+      const result = await FavoriteRecipe.deleteOne({ mealId });
+      if (result.deletedCount === 0) {
+        return res.status(404).json({ message: 'Meal not found in favorites' });
+      }
       return res.status(200).json({ message: 'Meal removed from favorites' });
     } catch (error) {
       console.error('Error removing favorite meal:', error);
@@ -54,6 +51,5 @@ export default async function handler(req, res) {
     }
   }
 
-  // If the method is not handled
   res.status(405).json({ message: 'Method Not Allowed' });
 }

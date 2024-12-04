@@ -2,6 +2,7 @@ import axios from 'axios';
 import Link from 'next/link';
 import {useRouter} from 'next/router';
 import {useState, useEffect} from "react";
+import {FaRandom} from "react-icons/fa";
 
 export async function getStaticProps() {
     try {
@@ -29,16 +30,46 @@ export default function Home({recipes}) {
     const [isLoading, setIsLoading] = useState(false);
     const [tabController, setTabController] = useState(0);
     const [favorites, setFavorites] = useState([]);
+    const [searchedMeals, setSearchedMeals] = useState([]);
 
-    // Fetch favorite meals from the server
+    const searchMeals = async () => {
+        try {
+            const res = await axios.get('https://www.themealdb.com/api/json/v1/1/search.php?s=');
+            const recipes = res.data.meals || [];
+
+            return {
+                props: {
+                    recipes,
+                },
+                revalidate: 10,
+            };
+        } catch (error) {
+            console.error('Error fetching recipes:', error);
+            return {
+                props: {
+                    recipes: [],
+                },
+            };
+        }
+    }
+
     const fetchFavorites = async () => {
         try {
             const res = await axios.get('/api/favorites');
-            setFavorites(res.data); // Set favorite meals state
+            setFavorites(res.data);
         } catch (error) {
             console.error('Error fetching favorites:', error);
         }
     };
+
+    const getRandom = async () => {
+        try {
+            const res = await axios.get("https://themealdb.com/api/json/v1/1/random.php");
+            router.push("/recipe/" + res.data.meals[0].idMeal);
+        } catch (e) {
+            console.error('Error fetching random recipe:', error)
+        }
+    }
 
     useEffect(() => {
         if (tabController === 1) {
@@ -47,8 +78,8 @@ export default function Home({recipes}) {
     }, [tabController]);
 
     useEffect(() => {
-        const handleStart = () => setIsLoading(true); // When navigation starts
-        const handleComplete = () => setIsLoading(false); // When navigation ends
+        const handleStart = () => setIsLoading(true);
+        const handleComplete = () => setIsLoading(false);
 
         router.events.on('routeChangeStart', handleStart);
         router.events.on('routeChangeComplete', handleComplete);
@@ -64,7 +95,7 @@ export default function Home({recipes}) {
     // Show a loading state when fallback is in progress
     if (router.isFallback || isLoading) {
         return (
-            <div className="bg-gray-900 text-white min-h-screen flex items-center justify-center">
+            <div className="bg-gray-900 text-white min-h-screen flex items-center justify-center relative">
                 <div className="text-center">
                     <div
                         className="loader border-t-4 border-blue-500 rounded-full w-16 h-16 animate-spin mb-4 mx-auto"></div>
@@ -140,6 +171,11 @@ export default function Home({recipes}) {
                         )}
                     </div>
                 )}
+            </div>
+            <div
+                className="rounded-full fixed right-6 bottom-6 p-4 flex items-center justify-center gap-2 bg-gray-700 cursor-pointer hover:scale-125 transition-all"
+                onClick={getRandom}>
+                <FaRandom size={26}/>
             </div>
         </div>
     );
