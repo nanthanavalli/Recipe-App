@@ -1,8 +1,10 @@
 import axios from 'axios';
 import Link from 'next/link';
-import { useRouter } from 'next/router';
-import { useState, useEffect } from 'react';
-import { FiArrowLeft } from 'react-icons/fi';
+import {useRouter} from 'next/router';
+import {useState, useEffect, useLayoutEffect} from 'react';
+import {FiArrowLeft} from 'react-icons/fi';
+import {FaRegStar, FaStar} from "react-icons/fa";
+import {toast} from "react-toastify";
 
 export async function getStaticPaths() {
     try {
@@ -10,7 +12,7 @@ export async function getStaticPaths() {
         const recipes = res.data.meals || [];
 
         const paths = recipes.map((recipe) => ({
-            params: { mealId: recipe.idMeal },
+            params: {mealId: recipe.idMeal},
         }));
 
         return {
@@ -26,8 +28,8 @@ export async function getStaticPaths() {
     }
 }
 
-export async function getStaticProps({ params }) {
-    const { mealId } = params;
+export async function getStaticProps({params}) {
+    const {mealId} = params;
 
     try {
         const res = await axios.get(`https://www.themealdb.com/api/json/v1/1/lookup.php?i=${mealId}`);
@@ -53,9 +55,10 @@ export async function getStaticProps({ params }) {
     }
 }
 
-export default function RecipeDetail({ meal }) {
+export default function RecipeDetail({meal}) {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
+    const [favorites, setFavorites] = useState([]);
 
     useEffect(() => {
         const handleStart = () => setIsLoading(true); // When navigation starts
@@ -72,11 +75,59 @@ export default function RecipeDetail({ meal }) {
         };
     }, [router]);
 
+    useLayoutEffect(() => {
+        const fetchFavorites = async () => {
+            try {
+                setIsLoading(true);
+                const res = await axios.get('/api/favorites');
+                setIsLoading(false);
+                setFavorites(res.data);
+            } catch (error) {
+                console.error('Error fetching favorites:', error);
+            }
+        };
+        fetchFavorites();
+    }, []);
+
+
+    const handleRemoveFavorite = async (mealId) => {
+        try {
+            const response = await axios.delete('/api/favorites', {
+                data: {
+                    mealId: mealId
+                }
+            });
+            if (response.data.message === 'Meal removed from favorites') {
+                setFavorites((prev) => prev.filter((meal) => meal.mealId !== mealId));
+            }
+            toast(response.data.message);
+        } catch (error) {
+            console.error('Error removing favorite meal:', error);
+        }
+    };
+
+    const handleAddFavorite = async () => {
+        try {
+            const response = await axios.post('/api/favorites', {
+                mealId: meal.idMeal,
+                mealName: meal.strMeal,
+                imageUrl: meal.strMealThumb,
+            });
+            if (response.data.message === 'Meal added to favorites') {
+                setFavorites((prev) => [...prev, {...meal, mealId: meal.idMeal}]);
+            }
+            toast(response.data.message);
+        } catch (error) {
+            console.error('Error adding favorite meal:', error);
+        }
+    };
+
     if (router.isFallback || isLoading) {
         return (
             <div className="bg-gray-900 text-white min-h-screen flex items-center justify-center">
                 <div className="text-center">
-                    <div className="loader border-t-4 border-blue-500 rounded-full w-16 h-16 animate-spin mb-4 mx-auto"></div>
+                    <div
+                        className="loader border-t-4 border-blue-500 rounded-full w-16 h-16 animate-spin mb-4 mx-auto"></div>
                     <p>Loading meal details...</p>
                 </div>
             </div>
@@ -91,8 +142,9 @@ export default function RecipeDetail({ meal }) {
         <div className="bg-gray-900 text-white min-h-screen">
             <div className="container mx-auto p-6">
                 <Link href="/">
-                    <div className="flex items-center text-blue-500 hover:text-blue-700 font-semibold mb-6 cursor-pointer">
-                        <FiArrowLeft className="mr-2" /> {/* Left arrow icon */}
+                    <div
+                        className="flex items-center text-blue-500 hover:text-blue-700 font-semibold mb-6 cursor-pointer">
+                        <FiArrowLeft className="mr-2"/> {/* Left arrow icon */}
                         <span>Back to All Meals</span>
                     </div>
                 </Link>
@@ -107,7 +159,18 @@ export default function RecipeDetail({ meal }) {
                     </div>
 
                     <div>
-                        <h1 className="text-3xl font-bold mb-4">{meal.strMeal}</h1>
+                        <div className="flex items-center mb-4 gap-3">
+                            <h1 className="text-3xl font-bold">{meal.strMeal}</h1>
+                            {/*<div className="flex items-center gap-2 ">*/}
+                            {/*    <h2 className="font-bold">Add to favorites</h2>*/}
+                            {/*    */}
+                            {favorites.some(favorite => favorite.mealId === meal.idMeal) ?
+                                <FaStar size={24} onClick={() => {
+                                    handleRemoveFavorite(meal.idMeal);
+                                }}/> :
+                                <FaRegStar size={24} onClick={handleAddFavorite}/>}
+                            {/*</div>*/}
+                        </div>
                         <p className="text-gray-400 mb-4">
                             <span className="font-semibold">Category:</span> {meal.strCategory}
                         </p>
